@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="preconnect" href="https://www.gstatic.com"/>
+<link rel="dns-prefetch" href="https://www.gstatic.com"/>
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta http-equiv="Cache-Control" content="no-cache"/>
+<title>ZenithCrypto — LEADERBOARD</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script>
+/* ── CONFIG ── */
+(function(){var _x=atob('eyJhcGlLZXkiOiJBSXphU3lDSFJ3cV9EMFdtODNmSTZNcEVwT20tZjlJaXBsZzdUNVEiLCJhdXRoRG9tYWluIjoidGl0YW4tYXBleC1tdWx0aXBsYXllci5maXJlYmFzZWFwcC5jb20iLCJwcm9qZWN0SWQiOiJ0aXRhbi1hcGV4LW11bHRpcGxheWVyIiwic3RvcmFnZUJ1Y2tldCI6InRpdGFuLWFwZXgtbXVsdGlwbGF5ZXIuZmlyZWJhc2VzdG9yYWdlLmFwcCIsIm1lc3NhZ2luZ1NlbmRlcklkIjoiNDEzODUwMDczNDgxIiwiYXBwSWQiOiIxOjQxMzg1MDA3MzQ4MTp3ZWI6ODM0ZGVmNTlmNDA3OTRkMjE4MDk1OCIsImRhdGFiYXNlVVJMIjoiaHR0cHM6Ly90aXRhbi1hcGV4LW11bHRpcGxheWVyLWRlZmF1bHQtcnRkYi5hc2lhLXNvdXRoZWFzdDEuZmlyZWJhc2VkYXRhYmFzZS5hcHAifQ==');try{window._FC=JSON.parse(_x);}catch(e){}})();
+var db=null,auth=null,rtdb=null,FS=null,G={};
+
+/* ── OFFLINE GUARD ── */
+(function(){
+  var _t=null;
+  window._showOffline=function(msg){
+    if(document.getElementById('_zco'))return;
+    var d=document.createElement('div');d.id='_zco';
+    d.style.cssText='position:fixed;inset:0;z-index:99999;background:#04060e;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:30px;text-align:center';
+    d.innerHTML='<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#4f8ef7" stroke-width="1.5"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>'
+      +'<div style="font-family:Orbitron,monospace;font-size:.9rem;font-weight:900;color:#eaecf0">CONNECTION LOST</div>'
+      +'<div style="font-family:Orbitron,monospace;font-size:.5rem;color:#6c7a96;line-height:1.8;max-width:280px">'+(msg||'Check your internet connection')+'<br><span id="_zc_rt">Retrying in 5s...</span></div>'
+      +'<button onclick="window._retryNow&&window._retryNow()" style="padding:11px 28px;border-radius:10px;border:1.5px solid rgba(79,142,247,.4);background:rgba(79,142,247,.1);color:#4f8ef7;font-family:Orbitron,monospace;font-size:.52rem;cursor:pointer;font-weight:700">RETRY NOW</button>';
+    document.body.appendChild(d);
+    var c=5;_t=setInterval(function(){c--;var r=document.getElementById('_zc_rt');if(r)r.textContent=c>0?'Retrying in '+c+'s...':'Retrying...';if(c<=0){clearInterval(_t);window._retryNow&&window._retryNow();}},1000);
+  };
+  window._hideOffline=function(){var d=document.getElementById('_zco');if(d)d.remove();if(_t)clearInterval(_t);};
+  window.addEventListener('online',function(){window._hideOffline();loadLB();});
+  window.addEventListener('offline',function(){window._showOffline('No internet connection.');});
+  window.addEventListener('error',function(e){e.preventDefault();return true;},true);
+  window.addEventListener('unhandledrejection',function(e){e.preventDefault();});
+})();
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#04060e;--s1:#080d18;--s2:#0c1220;--s3:#111929;
+  --a:#4f8ef7;--gold:#e8b84b;--gold2:#ffd166;
+  --green:#0ecb81;--red:#f6465d;--purple:#7c5df7;
+  --t1:#eaecf0;--t2:#6c7a96;--t3:#2d3a55;
+  --font:'Inter',system-ui,sans-serif;
+  --fhd:'Orbitron',monospace;--fmono:'JetBrains Mono',monospace;
+  --topH:54px;
+}
+html,body{visibility:visible;height:100%;background:var(--bg);color:var(--t1);font-family:var(--font);}
+#topbar{height:var(--topH);background:rgba(7,9,15,.95);border-bottom:1px solid rgba(0,212,255,.12);display:flex;align-items:center;padding:0 14px;gap:8px;position:fixed;top:0;left:0;right:0;z-index:100;backdrop-filter:blur(20px);}
+.tb-back{width:34px;height:34px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.tb-title{font-family:var(--fhd);font-size:.72rem;font-weight:900;flex:1;letter-spacing:2px;background:linear-gradient(90deg,var(--gold),var(--a));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+#main{margin-top:var(--topH);padding-bottom:30px;}
+.tabs{display:flex;background:var(--s1);border-bottom:1px solid rgba(255,255,255,.05);overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:0 0 auto;padding:12px 18px;font-family:var(--fhd);font-size:.52rem;font-weight:700;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;letter-spacing:1px;white-space:nowrap;transition:.2s;}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.lb-hero{background:radial-gradient(ellipse 100% 80% at 50% 0%,rgba(232,184,75,.08),transparent 60%),var(--s1);padding:20px 16px 14px;border-bottom:1px solid rgba(232,184,75,.1);text-align:center;}
+.lb-hero-title{font-family:var(--fhd);font-size:1rem;font-weight:900;background:linear-gradient(135deg,var(--gold),#fff,var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:3px;margin-bottom:4px;}
+.lb-hero-sub{font-family:var(--fhd);font-size:.42rem;color:var(--t3);letter-spacing:2px;}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:8px;padding:20px 16px 0;}
+.podium-slot{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;max-width:110px;}
+.podium-rank{font-family:var(--fhd);font-size:.44rem;color:var(--t3);}
+.podium-avatar{width:52px;height:52px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid transparent;position:relative;}
+.podium-avatar.r1{border-color:var(--gold);box-shadow:0 0 20px rgba(232,184,75,.4);}
+.podium-avatar.r2{border-color:#c0c0c0;box-shadow:0 0 12px rgba(192,192,192,.3);}
+.podium-avatar.r3{border-color:#cd7f32;box-shadow:0 0 12px rgba(205,127,50,.3);}
+.podium-crown{position:absolute;top:-14px;font-size:1rem;}
+.podium-name{font-family:var(--fhd);font-size:.44rem;font-weight:700;color:var(--t1);text-align:center;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.podium-val{font-family:var(--fmono);font-size:.5rem;font-weight:700;}
+.podium-bar{border-radius:6px 6px 0 0;width:100%;background:var(--s2);border:1px solid rgba(255,255,255,.06);}
+.podium-bar.r1{background:linear-gradient(180deg,rgba(232,184,75,.25),rgba(232,184,75,.05));border-color:rgba(232,184,75,.2);height:70px;}
+.podium-bar.r2{background:linear-gradient(180deg,rgba(192,192,192,.15),rgba(192,192,192,.03));border-color:rgba(192,192,192,.15);height:50px;}
+.podium-bar.r3{background:linear-gradient(180deg,rgba(205,127,50,.15),rgba(205,127,50,.03));border-color:rgba(205,127,50,.15);height:36px;}
+.lb-list{padding:10px 14px;}
+.lb-row{display:flex;align-items:center;gap:10px;background:var(--s1);border:1px solid rgba(255,255,255,.05);border-radius:11px;padding:11px 12px;margin-bottom:7px;transition:.15s;}
+.lb-row:active{transform:scale(.98);}
+.lb-row.me{border-color:rgba(79,142,247,.3);background:rgba(79,142,247,.06);}
+.lb-rank{font-family:var(--fhd);font-size:.62rem;font-weight:900;color:var(--t3);min-width:28px;text-align:center;}
+.lb-rank.top3{color:var(--gold);}
+.lb-av{width:38px;height:38px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:1rem;border:1.5px solid rgba(255,255,255,.06);flex-shrink:0;}
+.lb-info{flex:1;overflow:hidden;}
+.lb-name{font-family:var(--fhd);font-size:.54rem;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lb-sub{font-family:var(--fhd);font-size:.36rem;color:var(--t3);margin-top:2px;}
+.lb-val{font-family:var(--fmono);font-size:.58rem;font-weight:700;text-align:right;}
+.lb-badge{font-family:var(--fhd);font-size:.3rem;padding:2px 5px;border-radius:4px;background:rgba(232,184,75,.12);color:var(--gold);border:1px solid rgba(232,184,75,.2);margin-top:3px;display:inline-block;}
+.my-rank-banner{margin:10px 14px;background:linear-gradient(135deg,rgba(79,142,247,.12),rgba(124,93,247,.08));border:1px solid rgba(79,142,247,.25);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;}
+.my-rank-text{font-family:var(--fhd);font-size:.5rem;color:var(--t2);}
+.my-rank-num{font-family:var(--fhd);font-size:.72rem;font-weight:900;color:var(--a);}
+.refresh-btn{margin:12px auto;display:block;padding:10px 24px;border-radius:10px;border:1.5px solid rgba(79,142,247,.3);background:rgba(79,142,247,.08);color:var(--a);font-family:var(--fhd);font-size:.5rem;cursor:pointer;font-weight:700;}
+.empty-state{text-align:center;padding:40px 20px;color:var(--t3);font-family:var(--fhd);font-size:.54rem;}
+.spinner{width:24px;height:24px;border:2px solid rgba(79,142,247,.2);border-top-color:var(--a);border-radius:50%;animation:spin .8s linear infinite;margin:30px auto;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.lb-row{animation:fadeIn .3s ease both;}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <div class="tb-back" onclick="history.back()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+  </div>
+  <div class="tb-title">LEADERBOARD</div>
+  <div style="font-family:var(--fhd);font-size:.38rem;color:var(--t3);letter-spacing:1px" id="lb-updated">--</div>
+</div>
+
+<div id="main">
+  <div class="lb-hero">
+    <div class="lb-hero-title">🏆 ZENITH ELITE</div>
+    <div class="lb-hero-sub">TOP PLAYERS • LIVE RANKINGS</div>
+  </div>
+
+  <div class="tabs" id="lb-tabs">
+    <div class="tab active" onclick="lbTab(this,'wealth')">💰 WEALTH</div>
+    <div class="tab" onclick="lbTab(this,'level')">⭐ LEVEL</div>
+    <div class="tab" onclick="lbTab(this,'trades')">⚡ TRADES</div>
+    <div class="tab" onclick="lbTab(this,'miners')">⛏ MINERS</div>
+    <div class="tab" onclick="lbTab(this,'nfts')">🖼 NFTS</div>
+    <div class="tab" onclick="lbTab(this,'streak')">🔥 STREAK</div>
+  </div>
+
+  <div id="my-rank-wrap"></div>
+  <div id="podium-wrap" class="podium"></div>
+  <div id="lb-list" class="lb-list"><div class="spinner"></div></div>
+  <button class="refresh-btn" onclick="loadLB()">↻ REFRESH</button>
+</div>
+
+<script>
+var _LB_TAB='wealth';
+var _LB_FIELD={wealth:'bal',level:'level',trades:'totalTrades',miners:'minerCount',nfts:'nftCount',streak:'streak'};
+var _LB_LABEL={wealth:'Balance',level:'Level',trades:'Trades',miners:'Miners',nfts:'NFTs',streak:'Streak'};
+var _LB_FORMAT={
+  wealth:function(v){return '$'+parseFloat(v||0).toFixed(2);},
+  level:function(v){return 'LV '+(v||1);},
+  trades:function(v){return (v||0)+' trades';},
+  miners:function(v){return (v||0)+' miners';},
+  nfts:function(v){return (v||0)+' NFTs';},
+  streak:function(v){return (v||0)+' days';}
+};
+
+var _lbCache={};
+
+function lbTab(el,tab){
+  document.querySelectorAll('#lb-tabs .tab').forEach(function(t){t.classList.remove('active');});
+  el.classList.add('active');
+  _LB_TAB=tab;
+  loadLB();
+}
+
+function loadLB(){
+  if(!db){return;}
+  var field=_LB_FIELD[_LB_TAB]||'bal';
+  var list=document.getElementById('lb-list');
+  var podWrap=document.getElementById('podium-wrap');
+  list.innerHTML='<div class="spinner"></div>';
+  podWrap.innerHTML='';
+  document.getElementById('my-rank-wrap').innerHTML='';
+
+  db.collection('players').orderBy(field,'desc').limit(50).get()
+    .then(function(snap){
+      var players=[];
+      snap.forEach(function(doc){
+        var d=doc.data();
+        players.push({uid:doc.id,name:d.name||d.pid||'Player',level:d.level||1,bal:d.bal||0,
+          totalTrades:d.totalTrades||d.wins||0,streak:d.streak||0,
+          minerCount:Object.keys(d.upgrades||{}).filter(function(k){return (d.upgrades[k]||0)>0;}).length,
+          nftCount:(d.ownedNFTs||[]).length,vip:d.activePacks,pid:d.pid||''});
+      });
+
+      // Render podium (top 3)
+      renderPodium(players.slice(0,3),_LB_TAB);
+
+      // Render list (4-50)
+      list.innerHTML='';
+      players.forEach(function(p,i){
+        var row=renderRow(p,i+1,_LB_TAB);
+        list.appendChild(row);
+      });
+
+      // My rank
+      if(G.uid){
+        var myIdx=players.findIndex(function(p){return p.uid===G.uid;});
+        var wrap=document.getElementById('my-rank-wrap');
+        if(myIdx>=0){
+          wrap.innerHTML='<div class="my-rank-banner"><div style="font-size:1.6rem">🎯</div><div><div class="my-rank-text">YOUR RANKING</div><div class="my-rank-num">#'+(myIdx+1)+'</div></div><div style="flex:1;text-align:right"><div style="font-family:var(--fhd);font-size:.56rem;font-weight:700;color:var(--t1)">'+_LB_FORMAT[_LB_TAB](players[myIdx][_LB_FIELD[_LB_TAB]])+'</div><div style="font-family:var(--fhd);font-size:.36rem;color:var(--t3)">'+_LB_LABEL[_LB_TAB]+'</div></div></div>';
+        } else {
+          wrap.innerHTML='<div class="my-rank-banner"><div style="font-size:1.2rem">📊</div><div><div class="my-rank-text">You are outside top 50</div></div></div>';
+        }
+      }
+
+      // Update timestamp
+      var upd=document.getElementById('lb-updated');
+      if(upd)upd.textContent=new Date().toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
+    })
+    .catch(function(e){
+      list.innerHTML='<div class="empty-state">Could not load leaderboard</div>';
+    });
+}
+
+function getVIPLabel(vip){
+  if(!vip)return '';
+  if(vip.hacker)return '👾 HACKER';
+  if(vip.diamond)return '💎 DIAMOND';
+  if(vip.gold)return '🥇 GOLD';
+  if(vip.silver)return '🥈 SILVER';
+  if(vip.bronze)return '🥉 BRONZE';
+  return '';
+}
+
+function renderPodium(top3,tab){
+  var wrap=document.getElementById('podium-wrap');
+  wrap.innerHTML='';
+  if(!top3||top3.length===0)return;
+  // Order: 2nd, 1st, 3rd for visual podium
+  var order=[top3[1],top3[0],top3[2]];
+  var classes=['r2','r1','r3'];
+  var heights=['50px','70px','36px'];
+  var crowns=['','👑',''];
+  var rankNums=[2,1,3];
+  order.forEach(function(p,i){
+    if(!p)return;
+    var slot=document.createElement('div');
+    slot.className='podium-slot';
+    var val=_LB_FORMAT[tab](p[_LB_FIELD[tab]]);
+    slot.innerHTML='<div class="podium-rank">#'+rankNums[i]+'</div>'
+      +'<div class="podium-avatar '+classes[i]+'">'+(crowns[i]?'<span class="podium-crown">'+crowns[i]+'</span>':'')
+      +esc(p.name.slice(0,2).toUpperCase())+'</div>'
+      +'<div class="podium-name">'+esc(p.name)+'</div>'
+      +'<div class="podium-val" style="color:'+(i===1?'var(--gold)':i===0?'#c0c0c0':'#cd7f32')+'">'+val+'</div>'
+      +'<div class="podium-bar '+classes[i]+'" style="height:'+heights[i]+'"></div>';
+    wrap.appendChild(slot);
+  });
+}
+
+function renderRow(p,rank,tab){
+  var isMe=p.uid===G.uid;
+  var row=document.createElement('div');
+  row.className='lb-row'+(isMe?' me':'');
+  row.style.animationDelay=(rank*0.03)+'s';
+  var val=_LB_FORMAT[tab](p[_LB_FIELD[tab]]);
+  var vipLabel=getVIPLabel(p.vip);
+  var rankColor=rank<=3?'var(--gold)':'var(--t3)';
+  var medal=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
+  row.innerHTML='<div class="lb-rank'+(rank<=3?' top3':'')+'">'+(medal||rank)+'</div>'
+    +'<div class="lb-av">'+esc(p.name.slice(0,2).toUpperCase())+'</div>'
+    +'<div class="lb-info">'
+      +'<div class="lb-name">'+(isMe?'<span style="color:var(--a)">YOU — </span>':'')+esc(p.name)+'</div>'
+      +'<div class="lb-sub">LV'+p.level+(p.pid?' • '+p.pid:'')+'</div>'
+      +(vipLabel?'<div class="lb-badge">'+vipLabel+'</div>':'')
+    +'</div>'
+    +'<div class="lb-val" style="color:'+(tab==='wealth'?'var(--green)':tab==='level'?'var(--gold)':'var(--a)')+'">'+val+'</div>';
+  return row;
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ── BOOT ── */
+var ZCS={
+  _p:{home:'',market:'',trade:'',mine:'',wallet:'',tasks:'',social:'',boost:'',lb:'',forge:'',spin:'',nft:'',auction:'',referral:'',clans:''},
+  go:function(pg){try{sessionStorage.setItem('ZC_G',JSON.stringify(G));}catch(e){}var url=ZCS._p[pg];if(!url)return;window.location.href=url+'?uid='+(G.uid||'')+'&s='+encodeURIComponent(sessionStorage.getItem('ZC_G')||'{}');},
+  restore:function(){try{var p=new URLSearchParams(window.location.search);var uid=p.get('uid');var s=p.get('s');if(s)try{Object.assign(G,JSON.parse(decodeURIComponent(s)));}catch(e){}if(uid&&uid!=='guest')G.uid=uid;}catch(e){}},
+  sendReady:function(pg){try{if(window.parent!==window)window.parent.postMessage({type:'ZC_READY',page:pg},'*');}catch(e){}}
+};
+window.goPage=function(pg){ZCS.go(pg);};
+
+(function(){
+  ZCS.restore();
+  var _d=false;
+  window._retryNow=function(){if(!_d)startAuth();else{window._hideOffline&&window._hideOffline();loadLB();}};
+  function startAuth(){
+    window._hideOffline&&window._hideOffline();
+    if(typeof firebase==='undefined'){
+      if(!window._fbT)window._fbT=0;window._fbT++;
+      if(window._fbT>50){window._showOffline&&window._showOffline('Service unavailable.');return;}
+      setTimeout(startAuth,30);return;
+    }
+    if(!window.auth){
+      try{
+        if(!firebase.apps.length)firebase.initializeApp(window._FC||{});
+        window.auth=firebase.auth();window.db=firebase.firestore();
+        window.rtdb=firebase.database();window.FS=firebase.firestore;
+        db=window.db;auth=window.auth;rtdb=window.rtdb;FS=window.FS;
+      }catch(e){setTimeout(startAuth,50);return;}
+    }
+    auth.onAuthStateChanged(function(u){
+      if(_d)return;_d=true;
+      if(u)G.uid=u.uid;
+      if(G.uid&&!G.isGuest){
+        db.collection('players').doc(G.uid).get()
+          .then(function(s){if(s.exists)Object.assign(G,s.data());boot();})
+          .catch(function(){window._showOffline&&window._showOffline('Could not reach server.');});
+      }else boot();
+    },function(){window._showOffline&&window._showOffline('Connection error.');});
+    setTimeout(function(){if(!_d){_d=true;boot();}},6000);
+  }
+  function boot(){
+    ZCS.sendReady('lb');
+    loadLB();
+  }
+  startAuth();
+})();
+</script>
+</body>
+</html>
